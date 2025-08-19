@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>برنامج محاسبي مبسّط (متصفح)</title>
+  <style>
+    :root{--bg:#0f172a;--card:#111827;--muted:#1f2937;--text:#e5e7eb;--accent:#22c55e;--danger:#ef4444;--warn:#f59e0b;--shadow:0 10px 30px rgba(0,0,0,.3);} 
+    *{box-sizing:border-box;font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#111827);color:var(--text)}
+    header{position:sticky;top:0;z-index:5;background:#0b1220aa;backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid #243044}
+    .wrap{max-width:1050px;margin:auto;padding:18px}
+    h1{margin:8px 0 14px;font-size:22px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:10px 14px;background:var(--muted);border:1px solid #2b364a;border-radius:12px;cursor:pointer;user-select:none}
+    .tab.active{background:#0d2742;border-color:#2f6db7}
+    .grid{display:grid;gap:14px}
+    @media(min-width:900px){.grid-2{grid-template-columns:1fr 1fr}}
+    .card{background:var(--card);border:1px solid #1f2a3d;border-radius:16px;box-shadow:var(--shadow)}
+    .card h2{margin:0 0 8px;font-size:18px}
+    .card .body{padding:16px}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    input,select,textarea{background:#0b1220;border:1px solid #26334a;color:var(--text);padding:10px;border-radius:10px;width:100%}
+    textarea{min-height:70px}
+    label{font-size:13px;opacity:.85}
+    .btn{border:1px solid #2b364a;background:#0b1220;color:var(--text);padding:9px 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:#0f3b1f;border-color:#1e7c4a}
+    .btn.primary:hover{background:#125129}
+    .btn.warn{background:#3b2e0f;border-color:#8c6a14}
+    .btn.danger{background:#3b0f12;border-color:#84212a}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:12px}
+    th,td{border-bottom:1px solid #22304a;padding:10px;text-align:center;font-size:14px}
+    thead th{background:#0f2139;position:sticky;top:0}
+    .actions{display:flex;gap:6px;justify-content:center}
+    .muted{opacity:.8;font-size:13px}
+    .pill{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid #334155}
+    .ok{color:#86efac;border-color:#166534}
+    .bad{color:#fda4af;border-color:#7f1d1d}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+    .modal.show{display:flex}
+    .modal .panel{background:var(--card);border:1px solid #26334a;border-radius:18px;max-width:1000px;width:100%;max-height:85vh;display:flex;flex-direction:column}
+    .panel header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#0f2139;border-bottom:1px solid #243044}
+    .panel header h3{margin:0;font-size:18px}
+    .panel .content{padding:14px;overflow:auto}
+    .totals{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .total{padding:8px 12px;background:#0b1220;border:1px solid #2b364a;border-radius:10px}
+    .hint{font-size:12px;opacity:.8;margin-top:6px}
+    .empty{padding:16px;text-align:center;opacity:.8}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>برنامج محاسبي مبسّط (سندات + فواتير + كشوف)</h1>
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="ops">العمليات</button>
+        <button class="tab" data-tab="parties">العملاء والموردين</button>
+        <button class="tab" data-tab="funds">الصناديق</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- العمليات -->
+    <section id="tab-ops">
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="body">
+            <h2>سند قبض / فاتورة مبيعات</h2>
+            <div class="row">
+              <div style="flex:2">
+                <label>العميل</label>
+                <select id="rcptCustomer"></select>
+              </div>
+              <div style="flex:2">
+                <label>الصندوق</label>
+                <select id="rcptFund"></select>
+              </div>
+              <div style="flex:1">
+                <label>المبلغ</label>
+                <input id="rcptAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+              </div>
+            </div>
+            <div class="row">
+              <div style="flex:1">
+                <label>التاريخ</label>
+                <input id="rcptDate" type="date" />
+              </div>
+              <div style="flex:2">
+                <label>ملاحظة</label>
+                <input id="rcptNote" type="text" placeholder="اختياري" />
+              </div>
+            </div>
+            <div class="row">
+              <div style="flex:2">
+                <label>نوع العملية</label>
+                <select id="rcptType">
+                  <option value="receipt">سند قبض</option>
+                  <option value="invoice">فاتورة مبيعات</option>
+                </select>
+              </div>
+            </div>
+            <div class="row" style="margin-top:10px;justify-content:flex-end">
+              <button class="btn primary" id="btnAddReceipt">حفظ</button>
+            </div>
+            <div class="hint">سند القبض: دائن العميل (+ للصندوق). فاتورة المبيعات: مدين العميل (+ العميل، - للصندوق)</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="body">
+            <h2>سند صرف / فاتورة مشتريات</h2>
+            <div class="row">
+              <div style="flex:2">
+                <label>المورد</label>
+                <select id="paySupplier"></select>
+              </div>
+              <div style="flex:2">
+                <label>الصندوق</label>
+                <select id="payFund"></select>
+              </div>
+              <div style="flex:1">
+                <label>المبلغ</label>
+                <input id="payAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+              </div>
+            </div>
+            <div class="row">
+              <div style="flex:1">
+                <label>التاريخ</label>
+                <input id="payDate" type="date" />
+              </div>
+              <div style="flex:2">
+                <label>ملاحظة</label>
+                <input id="payNote" type="text" placeholder="اختياري" />
+              </div>
+            </div>
+            <div class="row">
+              <div style="flex:2">
+                <label>نوع العملية</label>
+                <select id="payType">
+                  <option value="payment">سند صرف</option>
+                  <option value="purchase">فاتورة مشتريات</option>
+                </select>
+              </div>
+            </div>
+            <div class="row" style="margin-top:10px;justify-content:flex-end">
+              <button class="btn primary" id="btnAddPayment">حفظ</button>
+            </div>
+            <div class="hint">سند الصرف: مدين المورد (- للصندوق). فاتورة المشتريات: دائن المورد (+ للمورد، - للصندوق)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- العملاء والموردين -->
+    <section id="tab-parties" style="display:none">
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="body">
+            <h2>العملاء</h2>
+            <div class="row">
+              <input id="custName" placeholder="اسم العميل" />
+              <button class="btn primary" id="addCustomer">إضافة</button>
+            </div>
+            <div class="hint">لا يمكن حذف عميل عليه حركات.</div>
+            <div id="customersTableWrap" style="margin-top:10px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="body">
+            <h2>الموردون</h2>
+            <div class="row">
+              <input id="suppName" placeholder="اسم المورد" />
+              <button class="btn primary" id="addSupplier">إضافة</button>
+            </div>
+            <div class="hint">لا يمكن حذف مورد عليه حركات.</div>
+            <div id="suppliersTableWrap" style="margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- الصناديق -->
+    <section id="tab-funds" style="display:none">
+      <div class="card">
+        <div class="body">
+          <h2>الصناديق</h2>
+          <div class="row">
+            <input id="fundName" placeholder="اسم الصندوق" />
+            <input id="fundOpenBal" type="number" step="0.01" placeholder="رصيد افتتاحي (اختياري)" />
+            <button class="btn primary" id="addFund">إضافة</button>
+          </div>
+          <div class="hint">الرصيد الحالي = الافتتاحي ± الحركات. لا يمكن حذف صندوق عليه حركات.</div>
+          <div id="fundsTableWrap" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal كشف الحساب -->
+  <div class="modal" id="statementModal" aria-hidden="true">
+    <div class="panel">
+      <header>
+        <h3 id="statementTitle">كشف الحساب</h3>
+        <div class="actions"><button class="btn" id="closeModal">إغلاق</button></div>
+      </header>
+      <div class="content">
+        <div id="statementInfo" class="muted" style="margin-bottom:8px"></div>
+        <div style="overflow:auto">
+          <table id="statementTable">
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>النوع</th>
+                <th>الوصف</th>
+                <th>مدين</th>
+                <th>دائن</th>
+                <th>الرصيد بعد الحركة</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="totals" style="margin-top:10px">
+          <div class="total">الرصيد النهائي: <b id="finalBalance">0.00</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const KEY='mini-acc-data-v2';
+const nowDate=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const money=n=>Number(n||0).toFixed(2);
+
+const load=()=>{const raw=localStorage.getItem(KEY);if(!raw) return {customers:[],suppliers:[],funds:[],tx:[]}; try{return JSON.parse(raw);}catch{return {customers:[],suppliers:[],funds:[],tx:[]}}}
+const save=()=>localStorage.setItem(KEY, JSON.stringify(DB));
+let DB=load();
+
+// --- تبويب ---
+document.querySelectorAll('#tabs .tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('#tabs .tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const id=btn.dataset.tab;
+    ['ops','parties','funds'].forEach(t=>document.getElementById('tab-'+t).style.display=(t===id)?'block':'none');
+  });
+});
+
+// --- عناصر ---
+const el={
+  rcptCustomer:document.getElementById('rcptCustomer'),
+  rcptFund:document.getElementById('rcptFund'),
+  rcptAmount:document.getElementById('rcptAmount'),
+  rcptDate:document.getElementById('rcptDate'),
+  rcptNote:document.getElementById('rcptNote'),
+  rcptType:document.getElementById('rcptType'),
+  paySupplier:document.getElementById('paySupplier'),
+  payFund:document.getElementById('payFund'),
+  payAmount:document.getElementById('payAmount'),
+  payDate:document.getElementById('payDate'),
+  payNote:document.getElementById('payNote'),
+  payType:document.getElementById('payType'),
+  customersTableWrap:document.getElementById('customersTableWrap'),
+  suppliersTableWrap:document.getElementById('suppliersTableWrap'),
+  fundsTableWrap:document.getElementById('fundsTableWrap'),
+  custName:document.getElementById('custName'),
+  suppName:document.getElementById('suppName'),
+  fundName:document.getElementById('fundName'),
+  fundOpenBal:document.getElementById('fundOpenBal'),
+  modal:document.getElementById('statementModal'),
+  stTitle:document.getElementById('statementTitle'),
+  stInfo:document.getElementById('statementInfo'),
+  stTable:document.querySelector('#statementTable tbody'),
+  stFinal:document.getElementById('finalBalance'),
+};
+el.rcptDate.value = el.payDate.value = nowDate();
+
+// --- رندرة لائحات الاختيار ---
+function refreshSelectors(){
+  const fill=(sel,arr,placeholder)=>{
+    sel.innerHTML='';
+    const opt0=document.createElement('option'); opt0.value=''; opt0.textContent=placeholder; sel.appendChild(opt0);
+    arr.forEach(x=>{const o=document.createElement('option'); o.value=x.id; o.textContent=x.name; sel.appendChild(o);});
+  };
+  fill(el.rcptCustomer, DB.customers, 'اختر عميل');
+  fill(el.rcptFund, DB.funds, 'اختر صندوق');
+  fill(el.paySupplier, DB.suppliers, 'اختر مورد');
+  fill(el.payFund, DB.funds, 'اختر صندوق');
+}
+
+// --- جداول ---
+function hasMovementsFor(kind, id){return DB.tx.some(t=> (kind==='customer' && (t.customerId===id)) || (kind==='supplier' && (t.supplierId===id)) || (kind==='fund' && t.fundId===id));}
+
+function tableHtml(items, kind){
+  if(!items.length) return `<div class="empty">لا توجد بيانات بعد.</div>`;
+  let headers=''; if(kind==='fund') headers='<th>الاسم</th><th>الرصيد الحالي</th><th>إجراءات</th>'; else headers='<th>الاسم</th><th>إجراءات</th>';
+  let rows='';
+  items.forEach(x=>{
+    const statementBtn = `<button class="btn" data-act="statement" data-kind="${kind}" data-id="${x.id}">كشف الحساب</button>`;
+    const editBtn = `<button class="btn warn" data-act="edit" data-kind="${kind}" data-id="${x.id}">تعديل</button>`;
+    const delBtn = `<button class="btn danger" data-act="del" data-kind="${kind}" data-id="${x.id}">حذف</button>`;
+    if(kind==='fund'){
+      const bal = calcFundBalance(x.id);
+      rows += `<tr><td>${x.name}</td><td><span class="pill ${bal>=0?'ok':'bad'}">${money(bal)}</span></td><td class="actions">${statementBtn}${editBtn}${delBtn}</td></tr>`;
+    }else{rows += `<tr><td>${x.name}</td><td class="actions">${statementBtn}${editBtn}${delBtn}</td></tr>`;}
+  });
+  return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderLists(){
+  el.customersTableWrap.innerHTML = tableHtml(DB.customers, 'customer');
+  el.suppliersTableWrap.innerHTML = tableHtml(DB.suppliers, 'supplier');
+  el.fundsTableWrap.innerHTML     = tableHtml(DB.funds, 'fund');
+  [el.customersTableWrap, el.suppliersTableWrap, el.fundsTableWrap].forEach(wrap=>{
+    wrap.querySelectorAll('button[data-act]')?.forEach(btn=>{btn.addEventListener('click', btnAction);});
+  });
+  refreshSelectors();
+}
+
+// --- إضافة ---
+document.getElementById('addCustomer').addEventListener('click',()=>{
+  const name=el.custName.value.trim(); if(!name){alert('أدخل اسم العميل');return;}
+  DB.customers.push({id:uid(),name}); save(); el.custName.value=''; renderLists();
+});
+document.getElementById('addSupplier').addEventListener('click',()=>{
+  const name=el.suppName.value.trim(); if(!name){alert('أدخل اسم المورد');return;}
+  DB.suppliers.push({id:uid(),name}); save(); el.suppName.value=''; renderLists();
+});
+document.getElementById('addFund').addEventListener('click',()=>{
+  const name=el.fundName.value.trim(); if(!name){alert('أدخل اسم الصندوق');return;}
+  const openBal=parseFloat(el.fundOpenBal.value)||0;
+  DB.funds.push({id:uid(),name,openBal}); save(); el.fundName.value=''; el.fundOpenBal.value=''; renderLists();
+});
+
+// --- إضافة عمليات ---
+document.getElementById('btnAddReceipt').addEventListener('click',()=>{
+  const cid=el.rcptCustomer.value; if(!cid){alert('اختر العميل');return;}
+  const fid=el.rcptFund.value; if(!fid){alert('اختر الصندوق');return;}
+  const amt=parseFloat(el.rcptAmount.value); if(!amt){alert('أدخل المبلغ');return;}
+  const type=el.rcptType.value;
+  DB.tx.push({id:uid(),type,date:el.rcptDate.value,amount:amt,customerId:cid,fundId:fid,note:el.rcptNote.value});
+  save(); el.rcptAmount.value=''; el.rcptNote.value=''; alert('تم إضافة العملية'); 
+});
+document.getElementById('btnAddPayment').addEventListener('click',()=>{
+  const sid=el.paySupplier.value; if(!sid){alert('اختر المورد');return;}
+  const fid=el.payFund.value; if(!fid){alert('اختر الصندوق');return;}
+  const amt=parseFloat(el.payAmount.value); if(!amt){alert('أدخل المبلغ');return;}
+  const type=el.payType.value;
+  DB.tx.push({id:uid(),type,date:el.payDate.value,amount:amt,supplierId:sid,fundId:fid,note:el.payNote.value});
+  save(); el.payAmount.value=''; el.payNote.value=''; alert('تم إضافة العملية');
+});
+
+// --- كشف الحساب ---
+function calcFundBalance(fid){
+  let bal=0; const txs=DB.tx.filter(t=>t.fundId===fid);
+  DB.funds.forEach(f=>{if(f.id===fid) bal+=parseFloat(f.openBal||0);});
+  txs.forEach(t=>{
+    if(t.type==='receipt') bal+=t.amount;
+    else if(t.type==='invoice') bal-=t.amount;
+    else if(t.type==='payment') bal-=t.amount;
+    else if(t.type==='purchase') bal-=t.amount;
+  });
+  return bal;
+}
+function showStatement(kind, id){
+  let name='', txs=[];
+  if(kind==='customer'){ const c=DB.customers.find(c=>c.id===id); if(!c)return; name=c.name; txs=DB.tx.filter(t=>t.customerId===id);}
+  else if(kind==='supplier'){ const s=DB.suppliers.find(s=>s.id===id); if(!s)return; name=s.name; txs=DB.tx.filter(t=>t.supplierId===id);}
+  else if(kind==='fund'){ const f=DB.funds.find(f=>f.id===id); if(!f)return; name=f.name; txs=DB.tx.filter(t=>t.fundId===id);}
+  el.stTitle.textContent='كشف الحساب: '+name;
+  el.stInfo.textContent = `عدد الحركات: ${txs.length}`;
+  el.stTable.innerHTML='';
+  let balance=0;
+  txs.sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{
+    let debit=0, credit=0, desc=t.note||t.type;
+    if(kind==='customer'){
+      if(t.type==='receipt'){credit=t.amount; balance-=credit;} // سند قبض: دائن
+      else if(t.type==='invoice'){debit=t.amount; balance+=debit;} // فاتورة مبيعات: مدين
+    } else if(kind==='supplier'){
+      if(t.type==='payment'){debit=t.amount; balance+=debit;} // سند صرف: مدين
+      else if(t.type==='purchase'){credit=t.amount; balance-=credit;} // فاتورة مشتريات: دائن
+    } else if(kind==='fund'){
+      if(t.type==='receipt') debit=t.amount; 
+      else if(t.type==='invoice') debit=-t.amount; 
+      else if(t.type==='payment') credit=t.amount; 
+      else if(t.type==='purchase') credit=t.amount;
+      balance=calcFundBalance(id);
+    }
+    el.stTable.innerHTML += `<tr>
+      <td>${t.date}</td>
+      <td>${t.type}</td>
+      <td>${desc}</td>
+      <td>${debit?money(debit):''}</td>
+      <td>${credit?money(credit):''}</td>
+      <td>${money(balance)}</td>
+    </tr>`;
+  });
+  el.stFinal.textContent=money(balance);
+  el.modal.classList.add('show');
+}
+
+// --- إغلاق المودال ---
+document.getElementById('closeModal').addEventListener('click',()=>el.modal.classList.remove('show'));
+
+// --- أزرار جداول ---
+function btnAction(e){
+  const b=e.currentTarget, act=b.dataset.act, kind=b.dataset.kind, id=b.dataset.id;
+  if(act==='statement'){showStatement(kind,id);}
+  else if(act==='del'){
+    if(hasMovementsFor(kind,id)){alert('لا يمكن حذف عنصر عليه حركات.'); return;}
+    if(kind==='customer') DB.customers=DB.customers.filter(c=>c.id!==id);
+    if(kind==='supplier') DB.suppliers=DB.suppliers.filter(s=>s.id!==id);
+    if(kind==='fund') DB.funds=DB.funds.filter(f=>f.id!==id);
+    save(); renderLists();
+  }
+  else if(act==='edit'){
+    const newName=prompt('ادخل الاسم الجديد');
+    if(!newName) return;
+    if(kind==='customer') DB.customers.find(c=>c.id===id).name=newName;
+    if(kind==='supplier') DB.suppliers.find(s=>s.id===id).name=newName;
+    if(kind==='fund') DB.funds.find(f=>f.id===id).name=newName;
+    save(); renderLists();
+  }
+}
+
+// --- البداية ---
+renderLists();
+</script>
+</body>
+</html>
