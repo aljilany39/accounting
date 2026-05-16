@@ -1,433 +1,780 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>برنامج محاسبي مبسّط (متصفح)</title>
-  <style>
-    :root{--bg:#0f172a;--card:#111827;--muted:#1f2937;--text:#e5e7eb;--accent:#22c55e;--danger:#ef4444;--warn:#f59e0b;--shadow:0 10px 30px rgba(0,0,0,.3);} 
-    *{box-sizing:border-box;font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif}
-    body{margin:0;background:linear-gradient(180deg,#0b1220,#111827);color:var(--text)}
-    header{position:sticky;top:0;z-index:5;background:#0b1220aa;backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid #243044}
-    .wrap{max-width:1050px;margin:auto;padding:18px}
-    h1{margin:8px 0 14px;font-size:22px}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap}
-    .tab{padding:10px 14px;background:var(--muted);border:1px solid #2b364a;border-radius:12px;cursor:pointer;user-select:none}
-    .tab.active{background:#0d2742;border-color:#2f6db7}
-    .grid{display:grid;gap:14px}
-    @media(min-width:900px){.grid-2{grid-template-columns:1fr 1fr}}
-    .card{background:var(--card);border:1px solid #1f2a3d;border-radius:16px;box-shadow:var(--shadow)}
-    .card h2{margin:0 0 8px;font-size:18px}
-    .card .body{padding:16px}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    input,select,textarea{background:#0b1220;border:1px solid #26334a;color:var(--text);padding:10px;border-radius:10px;width:100%}
-    textarea{min-height:70px}
-    label{font-size:13px;opacity:.85}
-    .btn{border:1px solid #2b364a;background:#0b1220;color:var(--text);padding:9px 12px;border-radius:10px;cursor:pointer}
-    .btn.primary{background:#0f3b1f;border-color:#1e7c4a}
-    .btn.primary:hover{background:#125129}
-    .btn.warn{background:#3b2e0f;border-color:#8c6a14}
-    .btn.danger{background:#3b0f12;border-color:#84212a}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:12px}
-    th,td{border-bottom:1px solid #22304a;padding:10px;text-align:center;font-size:14px}
-    thead th{background:#0f2139;position:sticky;top:0}
-    .actions{display:flex;gap:6px;justify-content:center}
-    .muted{opacity:.8;font-size:13px}
-    .pill{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid #334155}
-    .ok{color:#86efac;border-color:#166534}
-    .bad{color:#fda4af;border-color:#7f1d1d}
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
-    .modal.show{display:flex}
-    .modal .panel{background:var(--card);border:1px solid #26334a;border-radius:18px;max-width:1000px;width:100%;max-height:85vh;display:flex;flex-direction:column}
-    .panel header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#0f2139;border-bottom:1px solid #243044}
-    .panel header h3{margin:0;font-size:18px}
-    .panel .content{padding:14px;overflow:auto}
-    .totals{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-    .total{padding:8px 12px;background:#0b1220;border:1px solid #2b364a;border-radius:10px}
-    .hint{font-size:12px;opacity:.8;margin-top:6px}
-    .empty{padding:16px;text-align:center;opacity:.8}
-  </style>
-</head>
-<body>
-  <header>
-    <div class="wrap">
-      <h1>برنامج محاسبي مبسّط (سندات + فواتير + كشوف)</h1>
-      <div class="tabs" id="tabs">
-        <button class="tab active" data-tab="ops">العمليات</button>
-        <button class="tab" data-tab="parties">العملاء والموردين</button>
-        <button class="tab" data-tab="funds">الصناديق</button>
-      </div>
-    </div>
-  </header>
+// src/app/dashboard/page.tsx
+'use client'
 
-  <main class="wrap">
-    <!-- العمليات -->
-    <section id="tab-ops">
-      <div class="grid grid-2">
-        <div class="card">
-          <div class="body">
-            <h2>سند قبض / فاتورة مبيعات</h2>
-            <div class="row">
-              <div style="flex:2">
-                <label>العميل</label>
-                <select id="rcptCustomer"></select>
-              </div>
-              <div style="flex:2">
-                <label>الصندوق</label>
-                <select id="rcptFund"></select>
-              </div>
-              <div style="flex:1">
-                <label>المبلغ</label>
-                <input id="rcptAmount" type="number" min="0" step="0.01" placeholder="0.00" />
-              </div>
-            </div>
-            <div class="row">
-              <div style="flex:1">
-                <label>التاريخ</label>
-                <input id="rcptDate" type="date" />
-              </div>
-              <div style="flex:2">
-                <label>ملاحظة</label>
-                <input id="rcptNote" type="text" placeholder="اختياري" />
-              </div>
-            </div>
-            <div class="row">
-              <div style="flex:2">
-                <label>نوع العملية</label>
-                <select id="rcptType">
-                  <option value="receipt">سند قبض</option>
-                  <option value="invoice">فاتورة مبيعات</option>
-                </select>
-              </div>
-            </div>
-            <div class="row" style="margin-top:10px;justify-content:flex-end">
-              <button class="btn primary" id="btnAddReceipt">حفظ</button>
-            </div>
-            <div class="hint">سند القبض: دائن العميل (+ للصندوق). فاتورة المبيعات: مدين العميل (+ العميل، - للصندوق)</div>
-          </div>
-        </div>
+import { useState, useEffect, useCallback } from 'react'
+import { useTheme } from 'next-themes'
+import {
+  TrendingUp, Package, Globe, RefreshCw, Search, Filter,
+  Sun, Moon, BarChart3, Zap, Star, ShoppingBag, ChevronLeft,
+  ChevronRight, X, SlidersHorizontal, LogOut, Bell
+} from 'lucide-react'
+import type { Product, ProductFilters, PaginatedResponse, DashboardStats, Source } from '@/types'
+import toast from 'react-hot-toast'
 
-        <div class="card">
-          <div class="body">
-            <h2>سند صرف / فاتورة مشتريات</h2>
-            <div class="row">
-              <div style="flex:2">
-                <label>المورد</label>
-                <select id="paySupplier"></select>
-              </div>
-              <div style="flex:2">
-                <label>الصندوق</label>
-                <select id="payFund"></select>
-              </div>
-              <div style="flex:1">
-                <label>المبلغ</label>
-                <input id="payAmount" type="number" min="0" step="0.01" placeholder="0.00" />
-              </div>
-            </div>
-            <div class="row">
-              <div style="flex:1">
-                <label>التاريخ</label>
-                <input id="payDate" type="date" />
-              </div>
-              <div style="flex:2">
-                <label>ملاحظة</label>
-                <input id="payNote" type="text" placeholder="اختياري" />
-              </div>
-            </div>
-            <div class="row">
-              <div style="flex:2">
-                <label>نوع العملية</label>
-                <select id="payType">
-                  <option value="payment">سند صرف</option>
-                  <option value="purchase">فاتورة مشتريات</option>
-                </select>
-              </div>
-            </div>
-            <div class="row" style="margin-top:10px;justify-content:flex-end">
-              <button class="btn primary" id="btnAddPayment">حفظ</button>
-            </div>
-            <div class="hint">سند الصرف: مدين المورد (- للصندوق). فاتورة المشتريات: دائن المورد (+ للمورد، - للصندوق)</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- العملاء والموردين -->
-    <section id="tab-parties" style="display:none">
-      <div class="grid grid-2">
-        <div class="card">
-          <div class="body">
-            <h2>العملاء</h2>
-            <div class="row">
-              <input id="custName" placeholder="اسم العميل" />
-              <button class="btn primary" id="addCustomer">إضافة</button>
-            </div>
-            <div class="hint">لا يمكن حذف عميل عليه حركات.</div>
-            <div id="customersTableWrap" style="margin-top:10px"></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="body">
-            <h2>الموردون</h2>
-            <div class="row">
-              <input id="suppName" placeholder="اسم المورد" />
-              <button class="btn primary" id="addSupplier">إضافة</button>
-            </div>
-            <div class="hint">لا يمكن حذف مورد عليه حركات.</div>
-            <div id="suppliersTableWrap" style="margin-top:10px"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- الصناديق -->
-    <section id="tab-funds" style="display:none">
-      <div class="card">
-        <div class="body">
-          <h2>الصناديق</h2>
-          <div class="row">
-            <input id="fundName" placeholder="اسم الصندوق" />
-            <input id="fundOpenBal" type="number" step="0.01" placeholder="رصيد افتتاحي (اختياري)" />
-            <button class="btn primary" id="addFund">إضافة</button>
-          </div>
-          <div class="hint">الرصيد الحالي = الافتتاحي ± الحركات. لا يمكن حذف صندوق عليه حركات.</div>
-          <div id="fundsTableWrap" style="margin-top:10px"></div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Modal كشف الحساب -->
-  <div class="modal" id="statementModal" aria-hidden="true">
-    <div class="panel">
-      <header>
-        <h3 id="statementTitle">كشف الحساب</h3>
-        <div class="actions"><button class="btn" id="closeModal">إغلاق</button></div>
-      </header>
-      <div class="content">
-        <div id="statementInfo" class="muted" style="margin-bottom:8px"></div>
-        <div style="overflow:auto">
-          <table id="statementTable">
-            <thead>
-              <tr>
-                <th>التاريخ</th>
-                <th>النوع</th>
-                <th>الوصف</th>
-                <th>مدين</th>
-                <th>دائن</th>
-                <th>الرصيد بعد الحركة</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="totals" style="margin-top:10px">
-          <div class="total">الرصيد النهائي: <b id="finalBalance">0.00</b></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-<script>
-const KEY='mini-acc-data-v2';
-const nowDate=()=>new Date().toISOString().slice(0,10);
-const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-const money=n=>Number(n||0).toFixed(2);
-
-const load=()=>{const raw=localStorage.getItem(KEY);if(!raw) return {customers:[],suppliers:[],funds:[],tx:[]}; try{return JSON.parse(raw);}catch{return {customers:[],suppliers:[],funds:[],tx:[]}}}
-const save=()=>localStorage.setItem(KEY, JSON.stringify(DB));
-let DB=load();
-
-// --- تبويب ---
-document.querySelectorAll('#tabs .tab').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('#tabs .tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    const id=btn.dataset.tab;
-    ['ops','parties','funds'].forEach(t=>document.getElementById('tab-'+t).style.display=(t===id)?'block':'none');
-  });
-});
-
-// --- عناصر ---
-const el={
-  rcptCustomer:document.getElementById('rcptCustomer'),
-  rcptFund:document.getElementById('rcptFund'),
-  rcptAmount:document.getElementById('rcptAmount'),
-  rcptDate:document.getElementById('rcptDate'),
-  rcptNote:document.getElementById('rcptNote'),
-  rcptType:document.getElementById('rcptType'),
-  paySupplier:document.getElementById('paySupplier'),
-  payFund:document.getElementById('payFund'),
-  payAmount:document.getElementById('payAmount'),
-  payDate:document.getElementById('payDate'),
-  payNote:document.getElementById('payNote'),
-  payType:document.getElementById('payType'),
-  customersTableWrap:document.getElementById('customersTableWrap'),
-  suppliersTableWrap:document.getElementById('suppliersTableWrap'),
-  fundsTableWrap:document.getElementById('fundsTableWrap'),
-  custName:document.getElementById('custName'),
-  suppName:document.getElementById('suppName'),
-  fundName:document.getElementById('fundName'),
-  fundOpenBal:document.getElementById('fundOpenBal'),
-  modal:document.getElementById('statementModal'),
-  stTitle:document.getElementById('statementTitle'),
-  stInfo:document.getElementById('statementInfo'),
-  stTable:document.querySelector('#statementTable tbody'),
-  stFinal:document.getElementById('finalBalance'),
-};
-el.rcptDate.value = el.payDate.value = nowDate();
-
-// --- رندرة لائحات الاختيار ---
-function refreshSelectors(){
-  const fill=(sel,arr,placeholder)=>{
-    sel.innerHTML='';
-    const opt0=document.createElement('option'); opt0.value=''; opt0.textContent=placeholder; sel.appendChild(opt0);
-    arr.forEach(x=>{const o=document.createElement('option'); o.value=x.id; o.textContent=x.name; sel.appendChild(o);});
-  };
-  fill(el.rcptCustomer, DB.customers, 'اختر عميل');
-  fill(el.rcptFund, DB.funds, 'اختر صندوق');
-  fill(el.paySupplier, DB.suppliers, 'اختر مورد');
-  fill(el.payFund, DB.funds, 'اختر صندوق');
+const SOURCE_COLORS: Record<Source, { bg: string; text: string; label: string }> = {
+  AMAZON: { bg: '#FF9900', text: '#1a1a1a', label: 'Amazon' },
+  ALIEXPRESS: { bg: '#FF4747', text: 'white', label: 'AliExpress' },
+  TEMU: { bg: '#FA5A28', text: 'white', label: 'Temu' },
+  EBAY: { bg: '#0064D2', text: 'white', label: 'eBay' },
+  SHOPIFY: { bg: '#96BF48', text: 'white', label: 'Shopify' },
+  TIKTOK_SHOP: { bg: '#010101', text: 'white', label: 'TikTok Shop' },
 }
 
-// --- جداول ---
-function hasMovementsFor(kind, id){return DB.tx.some(t=> (kind==='customer' && (t.customerId===id)) || (kind==='supplier' && (t.supplierId===id)) || (kind==='fund' && t.fundId===id));}
+const SORT_OPTIONS = [
+  { value: 'trendScore', label: '🔥 Trending Score' },
+  { value: 'salesCount', label: '📦 Best Selling' },
+  { value: 'rating', label: '⭐ Top Rated' },
+  { value: 'price', label: '💰 Price: Low-High' },
+  { value: 'createdAt', label: '🆕 Newest First' },
+]
 
-function tableHtml(items, kind){
-  if(!items.length) return `<div class="empty">لا توجد بيانات بعد.</div>`;
-  let headers=''; if(kind==='fund') headers='<th>الاسم</th><th>الرصيد الحالي</th><th>إجراءات</th>'; else headers='<th>الاسم</th><th>إجراءات</th>';
-  let rows='';
-  items.forEach(x=>{
-    const statementBtn = `<button class="btn" data-act="statement" data-kind="${kind}" data-id="${x.id}">كشف الحساب</button>`;
-    const editBtn = `<button class="btn warn" data-act="edit" data-kind="${kind}" data-id="${x.id}">تعديل</button>`;
-    const delBtn = `<button class="btn danger" data-act="del" data-kind="${kind}" data-id="${x.id}">حذف</button>`;
-    if(kind==='fund'){
-      const bal = calcFundBalance(x.id);
-      rows += `<tr><td>${x.name}</td><td><span class="pill ${bal>=0?'ok':'bad'}">${money(bal)}</span></td><td class="actions">${statementBtn}${editBtn}${delBtn}</td></tr>`;
-    }else{rows += `<tr><td>${x.name}</td><td class="actions">${statementBtn}${editBtn}${delBtn}</td></tr>`;}
-  });
-  return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
-}
+export default function DashboardPage() {
+  const { theme, setTheme } = useTheme()
+  const [products, setProducts] = useState<Product[]>([])
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [filters, setFilters] = useState<ProductFilters>({
+    sortBy: 'trendScore',
+    sortOrder: 'desc',
+    page: 1,
+    limit: 20,
+  })
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 0 })
+  const [search, setSearch] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [selectedSource, setSelectedSource] = useState<Source | ''>('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [sortBy, setSortBy] = useState('trendScore')
+  const [scraping, setScraping] = useState(false)
 
-function renderLists(){
-  el.customersTableWrap.innerHTML = tableHtml(DB.customers, 'customer');
-  el.suppliersTableWrap.innerHTML = tableHtml(DB.suppliers, 'supplier');
-  el.fundsTableWrap.innerHTML     = tableHtml(DB.funds, 'fund');
-  [el.customersTableWrap, el.suppliersTableWrap, el.fundsTableWrap].forEach(wrap=>{
-    wrap.querySelectorAll('button[data-act]')?.forEach(btn=>{btn.addEventListener('click', btnAction);});
-  });
-  refreshSelectors();
-}
+  const fetchProducts = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (filters.source) params.set('source', filters.source as string)
+      if (filters.category) params.set('category', filters.category)
+      if (filters.search) params.set('search', filters.search)
+      if (filters.sortBy) params.set('sortBy', filters.sortBy)
+      if (filters.sortOrder) params.set('sortOrder', filters.sortOrder)
+      params.set('page', String(filters.page || 1))
+      params.set('limit', String(filters.limit || 20))
 
-// --- إضافة ---
-document.getElementById('addCustomer').addEventListener('click',()=>{
-  const name=el.custName.value.trim(); if(!name){alert('أدخل اسم العميل');return;}
-  DB.customers.push({id:uid(),name}); save(); el.custName.value=''; renderLists();
-});
-document.getElementById('addSupplier').addEventListener('click',()=>{
-  const name=el.suppName.value.trim(); if(!name){alert('أدخل اسم المورد');return;}
-  DB.suppliers.push({id:uid(),name}); save(); el.suppName.value=''; renderLists();
-});
-document.getElementById('addFund').addEventListener('click',()=>{
-  const name=el.fundName.value.trim(); if(!name){alert('أدخل اسم الصندوق');return;}
-  const openBal=parseFloat(el.fundOpenBal.value)||0;
-  DB.funds.push({id:uid(),name,openBal}); save(); el.fundName.value=''; el.fundOpenBal.value=''; renderLists();
-});
+      const res = await fetch(`/api/products?${params}`)
+      const json = await res.json()
 
-// --- إضافة عمليات ---
-document.getElementById('btnAddReceipt').addEventListener('click',()=>{
-  const cid=el.rcptCustomer.value; if(!cid){alert('اختر العميل');return;}
-  const fid=el.rcptFund.value; if(!fid){alert('اختر الصندوق');return;}
-  const amt=parseFloat(el.rcptAmount.value); if(!amt){alert('أدخل المبلغ');return;}
-  const type=el.rcptType.value;
-  DB.tx.push({id:uid(),type,date:el.rcptDate.value,amount:amt,customerId:cid,fundId:fid,note:el.rcptNote.value});
-  save(); el.rcptAmount.value=''; el.rcptNote.value=''; alert('تم إضافة العملية'); 
-});
-document.getElementById('btnAddPayment').addEventListener('click',()=>{
-  const sid=el.paySupplier.value; if(!sid){alert('اختر المورد');return;}
-  const fid=el.payFund.value; if(!fid){alert('اختر الصندوق');return;}
-  const amt=parseFloat(el.payAmount.value); if(!amt){alert('أدخل المبلغ');return;}
-  const type=el.payType.value;
-  DB.tx.push({id:uid(),type,date:el.payDate.value,amount:amt,supplierId:sid,fundId:fid,note:el.payNote.value});
-  save(); el.payAmount.value=''; el.payNote.value=''; alert('تم إضافة العملية');
-});
-
-// --- كشف الحساب ---
-function calcFundBalance(fid){
-  let bal=0; const txs=DB.tx.filter(t=>t.fundId===fid);
-  DB.funds.forEach(f=>{if(f.id===fid) bal+=parseFloat(f.openBal||0);});
-  txs.forEach(t=>{
-    if(t.type==='receipt') bal+=t.amount;
-    else if(t.type==='invoice') bal-=t.amount;
-    else if(t.type==='payment') bal-=t.amount;
-    else if(t.type==='purchase') bal-=t.amount;
-  });
-  return bal;
-}
-function showStatement(kind, id){
-  let name='', txs=[];
-  if(kind==='customer'){ const c=DB.customers.find(c=>c.id===id); if(!c)return; name=c.name; txs=DB.tx.filter(t=>t.customerId===id);}
-  else if(kind==='supplier'){ const s=DB.suppliers.find(s=>s.id===id); if(!s)return; name=s.name; txs=DB.tx.filter(t=>t.supplierId===id);}
-  else if(kind==='fund'){ const f=DB.funds.find(f=>f.id===id); if(!f)return; name=f.name; txs=DB.tx.filter(t=>t.fundId===id);}
-  el.stTitle.textContent='كشف الحساب: '+name;
-  el.stInfo.textContent = `عدد الحركات: ${txs.length}`;
-  el.stTable.innerHTML='';
-  let balance=0;
-  txs.sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{
-    let debit=0, credit=0, desc=t.note||t.type;
-    if(kind==='customer'){
-      if(t.type==='receipt'){credit=t.amount; balance-=credit;} // سند قبض: دائن
-      else if(t.type==='invoice'){debit=t.amount; balance+=debit;} // فاتورة مبيعات: مدين
-    } else if(kind==='supplier'){
-      if(t.type==='payment'){debit=t.amount; balance+=debit;} // سند صرف: مدين
-      else if(t.type==='purchase'){credit=t.amount; balance-=credit;} // فاتورة مشتريات: دائن
-    } else if(kind==='fund'){
-      if(t.type==='receipt') debit=t.amount; 
-      else if(t.type==='invoice') debit=-t.amount; 
-      else if(t.type==='payment') credit=t.amount; 
-      else if(t.type==='purchase') credit=t.amount;
-      balance=calcFundBalance(id);
+      if (json.success) {
+        const data = json.data as PaginatedResponse<Product>
+        setProducts(data.data)
+        setPagination({ total: data.total, totalPages: data.totalPages })
+      }
+    } catch {
+      toast.error('Failed to load products')
+    } finally {
+      setLoading(false)
     }
-    el.stTable.innerHTML += `<tr>
-      <td>${t.date}</td>
-      <td>${t.type}</td>
-      <td>${desc}</td>
-      <td>${debit?money(debit):''}</td>
-      <td>${credit?money(credit):''}</td>
-      <td>${money(balance)}</td>
-    </tr>`;
-  });
-  el.stFinal.textContent=money(balance);
-  el.modal.classList.add('show');
+  }, [filters])
+
+  const fetchStats = async () => {
+    setStatsLoading(true)
+    try {
+      const res = await fetch('/api/admin/stats')
+      const json = await res.json()
+      if (json.success) setStats(json.data)
+    } catch {
+      // Stats are optional
+    } finally {
+      setStatsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setFilters((f) => ({ ...f, search, page: 1 }))
+  }
+
+  const applyFilters = () => {
+    setFilters((f) => ({
+      ...f,
+      source: selectedSource as Source || undefined,
+      category: selectedCategory || undefined,
+      sortBy: sortBy as ProductFilters['sortBy'],
+      sortOrder: sortBy === 'price' ? 'asc' : 'desc',
+      page: 1,
+    }))
+    setShowFilters(false)
+  }
+
+  const clearFilters = () => {
+    setSelectedSource('')
+    setSelectedCategory('')
+    setSortBy('trendScore')
+    setSearch('')
+    setFilters({ sortBy: 'trendScore', sortOrder: 'desc', page: 1, limit: 20 })
+  }
+
+  const triggerScrape = async () => {
+    setScraping(true)
+    try {
+      const res = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'ALL' }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        toast.success('Scraping job started! This may take a few minutes.')
+      } else {
+        toast.error(json.error || 'Failed to start scraping')
+      }
+    } catch {
+      toast.error('Failed to trigger scrape')
+    } finally {
+      setScraping(false)
+    }
+  }
+
+  const hasActiveFilters = selectedSource || selectedCategory || sortBy !== 'trendScore' || search
+
+  return (
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      {/* Top Navigation */}
+      <nav style={{
+        background: 'var(--bg-card)',
+        borderBottom: '1px solid var(--border)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        backdropFilter: 'blur(12px)',
+      }}>
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: 'var(--accent)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <TrendingUp size={20} color="white" />
+              </div>
+              <span style={{
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 800,
+                fontSize: 20,
+                letterSpacing: '-0.03em',
+                color: 'var(--text-primary)',
+              }}>
+                Trend<span style={{ color: 'var(--accent)' }}>Vault</span>
+              </span>
+            </div>
+
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="flex-1 max-w-lg mx-8 hidden md:flex">
+              <div className="relative w-full">
+                <Search size={16} style={{
+                  position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                }} />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search products, brands, categories..."
+                  style={{
+                    width: '100%',
+                    paddingLeft: 40,
+                    paddingRight: 16,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    color: 'var(--text-primary)',
+                    fontSize: 14,
+                    fontFamily: 'DM Sans, sans-serif',
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+                />
+              </div>
+            </form>
+
+            {/* Right Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={triggerScrape}
+                disabled={scraping}
+                className="btn-secondary hidden sm:flex"
+                style={{ fontSize: 13, padding: '8px 14px' }}
+              >
+                <RefreshCw size={14} className={scraping ? 'animate-spin' : ''} />
+                {scraping ? 'Scraping...' : 'Refresh Data'}
+              </button>
+
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 stagger-children">
+          <StatCard
+            icon={<Package size={20} />}
+            label="Total Products"
+            value={statsLoading ? '...' : (stats?.totalProducts?.toLocaleString() || '0')}
+            color="var(--accent)"
+          />
+          <StatCard
+            icon={<Globe size={20} />}
+            label="Data Sources"
+            value={statsLoading ? '...' : (stats?.sourcesCount?.toString() || '0')}
+            color="var(--accent-2)"
+          />
+          <StatCard
+            icon={<TrendingUp size={20} />}
+            label="Avg Trend Score"
+            value={statsLoading ? '...' : `${stats?.avgTrendScore || 0}/100`}
+            color="var(--success)"
+          />
+          <StatCard
+            icon={<Zap size={20} />}
+            label="Active Listings"
+            value={statsLoading ? '...' : (stats?.activeProducts?.toLocaleString() || '0')}
+            color="var(--warning)"
+          />
+        </div>
+
+        {/* Source Filter Pills */}
+        <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2">
+          <span style={{ color: 'var(--text-muted)', fontSize: 13, whiteSpace: 'nowrap', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
+            SOURCES:
+          </span>
+          <button
+            onClick={() => setFilters((f) => ({ ...f, source: undefined, page: 1 }))}
+            style={{
+              padding: '6px 16px',
+              borderRadius: 100,
+              border: '1px solid',
+              borderColor: !filters.source ? 'var(--accent)' : 'var(--border)',
+              background: !filters.source ? 'var(--accent-light)' : 'transparent',
+              color: !filters.source ? 'var(--accent)' : 'var(--text-secondary)',
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            All Sources
+          </button>
+          {Object.entries(SOURCE_COLORS).map(([src, cfg]) => (
+            <button
+              key={src}
+              onClick={() => setFilters((f) => ({ ...f, source: src as Source, page: 1 }))}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 100,
+                border: '2px solid',
+                borderColor: filters.source === src ? cfg.bg : 'transparent',
+                background: filters.source === src ? cfg.bg : 'var(--bg-secondary)',
+                color: filters.source === src ? cfg.text : 'var(--text-secondary)',
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 600,
+                fontSize: 12,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s',
+              }}
+            >
+              {cfg.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--text-primary)' }}>
+              {filters.source
+                ? `${SOURCE_COLORS[filters.source as Source]?.label || filters.source} Products`
+                : '🔥 Trending Products'}
+            </h2>
+            <span style={{
+              background: 'var(--accent-light)',
+              color: 'var(--accent)',
+              borderRadius: 100,
+              padding: '3px 10px',
+              fontSize: 12,
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+            }}>
+              {pagination.total.toLocaleString()} results
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {hasActiveFilters && (
+              <button onClick={clearFilters} style={{
+                padding: '8px 12px',
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+                background: 'var(--bg-card)',
+                color: 'var(--text-secondary)',
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}>
+                <X size={14} /> Clear
+              </button>
+            )}
+            <div style={{ position: 'relative' }}>
+              <select
+                value={filters.sortBy}
+                onChange={(e) => setFilters((f) => ({
+                  ...f,
+                  sortBy: e.target.value as ProductFilters['sortBy'],
+                  sortOrder: e.target.value === 'price' ? 'asc' : 'desc',
+                  page: 1,
+                }))}
+                style={{
+                  appearance: 'none',
+                  padding: '9px 36px 9px 14px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'Syne, sans-serif',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Products Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <EmptyState onClear={clearFilters} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 stagger-children">
+            {products.map((product, i) => (
+              <ProductCard key={product.id} product={product} rank={i + 1 + (((filters.page || 1) - 1) * (filters.limit || 20))} />
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-10">
+            <button
+              onClick={() => setFilters((f) => ({ ...f, page: Math.max(1, (f.page || 1) - 1) }))}
+              disabled={(filters.page || 1) <= 1}
+              className="btn-secondary"
+              style={{ opacity: (filters.page || 1) <= 1 ? 0.5 : 1 }}
+            >
+              <ChevronLeft size={16} /> Prev
+            </button>
+
+            <div style={{
+              padding: '10px 20px',
+              borderRadius: 10,
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: 14,
+              color: 'var(--text-primary)',
+            }}>
+              Page {filters.page} of {pagination.totalPages}
+            </div>
+
+            <button
+              onClick={() => setFilters((f) => ({ ...f, page: Math.min(pagination.totalPages, (f.page || 1) + 1) }))}
+              disabled={(filters.page || 1) >= pagination.totalPages}
+              className="btn-secondary"
+              style={{ opacity: (filters.page || 1) >= pagination.totalPages ? 0.5 : 1 }}
+            >
+              Next <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* Category Breakdown */}
+        {stats && stats.topCategories.length > 0 && (
+          <div className="mt-12">
+            <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, marginBottom: 20, color: 'var(--text-primary)' }}>
+              Top Categories
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {stats.topCategories.slice(0, 10).map((cat) => (
+                <button
+                  key={cat.category}
+                  onClick={() => setFilters((f) => ({ ...f, category: cat.category, page: 1 }))}
+                  className="card"
+                  style={{
+                    padding: '14px 16px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderColor: filters.category === cat.category ? 'var(--accent)' : 'var(--border)',
+                  }}
+                >
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', marginBottom: 4 }}>
+                    {cat.category}
+                  </div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                    {cat.count.toLocaleString()} products
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Source breakdown */}
+        {stats && (
+          <div className="mt-8 mb-4">
+            <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, marginBottom: 16, color: 'var(--text-primary)' }}>
+              Products by Source
+            </h3>
+            <div className="flex flex-wrap gap-3">
+              {stats.productsBySource.map(({ source, count }) => {
+                const cfg = SOURCE_COLORS[source as Source]
+                return (
+                  <div key={source} style={{
+                    padding: '10px 18px',
+                    borderRadius: 12,
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}>
+                    <div style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: cfg?.bg || '#888',
+                    }} />
+                    <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+                      {cfg?.label || source}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                      {count.toLocaleString()}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
-// --- إغلاق المودال ---
-document.getElementById('closeModal').addEventListener('click',()=>el.modal.classList.remove('show'));
+// ---- Sub-components ----
 
-// --- أزرار جداول ---
-function btnAction(e){
-  const b=e.currentTarget, act=b.dataset.act, kind=b.dataset.kind, id=b.dataset.id;
-  if(act==='statement'){showStatement(kind,id);}
-  else if(act==='del'){
-    if(hasMovementsFor(kind,id)){alert('لا يمكن حذف عنصر عليه حركات.'); return;}
-    if(kind==='customer') DB.customers=DB.customers.filter(c=>c.id!==id);
-    if(kind==='supplier') DB.suppliers=DB.suppliers.filter(s=>s.id!==id);
-    if(kind==='fund') DB.funds=DB.funds.filter(f=>f.id!==id);
-    save(); renderLists();
-  }
-  else if(act==='edit'){
-    const newName=prompt('ادخل الاسم الجديد');
-    if(!newName) return;
-    if(kind==='customer') DB.customers.find(c=>c.id===id).name=newName;
-    if(kind==='supplier') DB.suppliers.find(s=>s.id===id).name=newName;
-    if(kind==='fund') DB.funds.find(f=>f.id===id).name=newName;
-    save(); renderLists();
-  }
+function StatCard({ icon, label, value, color }: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  color: string
+}) {
+  return (
+    <div className="card" style={{ padding: '20px 20px' }}>
+      <div style={{
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        background: `${color}15`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color,
+        marginBottom: 12,
+      }}>
+        {icon}
+      </div>
+      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 24, color: 'var(--text-primary)', lineHeight: 1 }}>
+        {value}
+      </div>
+      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4, fontFamily: 'Syne, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {label}
+      </div>
+    </div>
+  )
 }
 
-// --- البداية ---
-renderLists();
-</script>
-</body>
-</html>
+function ProductCard({ product, rank }: { product: Product; rank: number }) {
+  const source = SOURCE_COLORS[product.source as Source]
+  const trendScore = product.trendScore || 0
+  const discount = product.originalPrice && product.originalPrice > product.price
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : null
+
+  return (
+    <a
+      href={product.productUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="card"
+      style={{
+        display: 'block',
+        textDecoration: 'none',
+        overflow: 'hidden',
+        position: 'relative',
+        cursor: 'pointer',
+      }}
+    >
+      {/* Rank badge */}
+      <div style={{
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        zIndex: 2,
+        background: rank <= 3 ? 'var(--accent)' : 'var(--bg-primary)',
+        color: rank <= 3 ? 'white' : 'var(--text-muted)',
+        borderRadius: 8,
+        padding: '3px 8px',
+        fontFamily: 'Syne, sans-serif',
+        fontWeight: 800,
+        fontSize: 12,
+        border: rank <= 3 ? 'none' : '1px solid var(--border)',
+      }}>
+        #{rank}
+      </div>
+
+      {/* Discount badge */}
+      {discount && discount > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          zIndex: 2,
+          background: 'var(--success)',
+          color: 'white',
+          borderRadius: 8,
+          padding: '3px 8px',
+          fontFamily: 'Syne, sans-serif',
+          fontWeight: 800,
+          fontSize: 11,
+        }}>
+          -{discount}%
+        </div>
+      )}
+
+      {/* Image */}
+      <div style={{
+        width: '100%',
+        paddingTop: '75%',
+        position: 'relative',
+        background: 'var(--bg-secondary)',
+        overflow: 'hidden',
+      }}>
+        {product.imageUrl ? (
+          <img
+            src={product.imageUrl}
+            alt={product.title}
+            style={{
+              position: 'absolute',
+              top: 0, left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              padding: 8,
+            }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none'
+            }}
+          />
+        ) : (
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0,
+            width: '100%', height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-muted)',
+          }}>
+            <ShoppingBag size={32} />
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '14px 14px 16px' }}>
+        {/* Source badge */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '2px 8px',
+          borderRadius: 6,
+          background: source?.bg || '#888',
+          color: source?.text || 'white',
+          fontSize: 10,
+          fontFamily: 'Syne, sans-serif',
+          fontWeight: 700,
+          marginBottom: 8,
+          letterSpacing: '0.03em',
+          textTransform: 'uppercase',
+        }}>
+          {source?.label || product.source}
+        </div>
+
+        {/* Category */}
+        {product.category && (
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
+            {product.category}
+          </div>
+        )}
+
+        {/* Title */}
+        <p style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 500,
+          fontSize: 13,
+          color: 'var(--text-primary)',
+          lineHeight: 1.4,
+          marginBottom: 10,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}>
+          {product.title}
+        </p>
+
+        {/* Price */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>
+          <span style={{
+            fontFamily: 'Syne, sans-serif',
+            fontWeight: 800,
+            fontSize: 18,
+            color: 'var(--text-primary)',
+          }}>
+            {product.currency === 'USD' ? '$' : product.currency}{product.price.toFixed(2)}
+          </span>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+              ${product.originalPrice.toFixed(2)}
+            </span>
+          )}
+        </div>
+
+        {/* Rating */}
+        {product.rating && product.rating > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+            <div style={{ display: 'flex', gap: 2 }}>
+              {[1,2,3,4,5].map((s) => (
+                <Star
+                  key={s}
+                  size={11}
+                  fill={s <= Math.round(product.rating || 0) ? '#F59E0B' : 'none'}
+                  color={s <= Math.round(product.rating || 0) ? '#F59E0B' : 'var(--border-strong)'}
+                />
+              ))}
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              {product.rating.toFixed(1)}
+              {product.reviewCount ? ` (${product.reviewCount.toLocaleString()})` : ''}
+            </span>
+          </div>
+        )}
+
+        {/* Trend Score */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, fontFamily: 'Syne, sans-serif', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Trend Score
+            </span>
+            <span style={{ fontSize: 11, fontFamily: 'Syne, sans-serif', fontWeight: 800, color: trendScore > 60 ? 'var(--accent)' : 'var(--text-secondary)' }}>
+              {trendScore}/100
+            </span>
+          </div>
+          <div className="trend-bar">
+            <div className="trend-bar-fill" style={{ width: `${trendScore}%` }} />
+          </div>
+        </div>
+      </div>
+    </a>
+  )
+}
+
+function ProductCardSkeleton() {
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="skeleton" style={{ width: '100%', paddingTop: '75%' }} />
+      <div style={{ padding: 14 }}>
+        <div className="skeleton" style={{ height: 18, width: 60, marginBottom: 8 }} />
+        <div className="skeleton" style={{ height: 13, width: '100%', marginBottom: 6 }} />
+        <div className="skeleton" style={{ height: 13, width: '80%', marginBottom: 10 }} />
+        <div className="skeleton" style={{ height: 22, width: 80, marginBottom: 10 }} />
+        <div className="skeleton" style={{ height: 8, width: '100%' }} />
+      </div>
+    </div>
+  )
+}
+
+function EmptyState({ onClear }: { onClear: () => void }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+      <div style={{ fontSize: 64, marginBottom: 16 }}>🔍</div>
+      <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--text-primary)', marginBottom: 8 }}>
+        No products found
+      </h3>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>
+        Try adjusting your filters or search query
+      </p>
+      <button onClick={onClear} className="btn-primary">
+        <X size={16} /> Clear Filters
+      </button>
+    </div>
+  )
+}
